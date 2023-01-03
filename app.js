@@ -128,19 +128,28 @@ app.put("/districts/:districtId/", async (request, response) => {
 
 //Returns the statistics of total cases, cured, active, deaths of a specific state based on state ID
 app.get("/states/:stateId/stats/", async (request, response) => {
-  const getStatisticsQuery = `
-    SELECT SUM(cases) as totalCases, SUM(cured) as totalCured, 
-    SUM(active) as totalActive, SUM(deaths) as totalDeaths
-    FROM state INNER JOIN district ON state.stateId = district.stateId;`;
-  const statistics = await db.get(getStatisticsQuery);
-  response.send(statistics);
+  const { stateId } = request.params;
+  const getStatsQuery = `
+    SELECT SUM(cases), SUM(cured), 
+    SUM(active), SUM(deaths)
+    FROM district
+    WHERE state_id = $(stateId);`;
+  const stats = await db.get(getStatsQuery);
+  console.log(stats);
+  response.send({
+    totalCases: stats["SUM(cases)"],
+    totalCured: stats["SUM(cured)"],
+    totalActive: stats["SUM(active)"],
+    totalDeaths: stats["SUM(deaths)"],
+  });
 });
 
 //Returns an object containing the state name of a district based on the district ID
 app.get("/districts/:districtId/details/", async (request, response) => {
+  const { districtId } = request.params;
   const getState = `
     SELECT stateName
-    FROM district INNER JOIN state ON district.stateId = state.stateId
+    FROM district NATURAL JOIN state
     WHERE district_id = ${districtId}`;
   const stateName = await db.get(getState);
   response.send(stateName);
